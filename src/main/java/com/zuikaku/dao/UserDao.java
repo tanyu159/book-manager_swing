@@ -194,22 +194,23 @@ public class UserDao  {
      * @param conn
      * @return
      */
-    public static boolean lendBook(Connection conn,User user,Book book)
+    public static boolean lendBook(Connection conn,User user,int bookid)
     {
-        //先判断书是否可借
-        if(!book.isLended())
-        {
+
             PreparedStatement ps=null;
             //使用事务提交
             try {
                 conn.setAutoCommit(false);
+
                 String updateBookStateSqlStr="UPDATE t_book SET lended=true,lended_count=lended_count+1 WHERE id=?";
                 ps=conn.prepareStatement(updateBookStateSqlStr);
+                ps.setInt(1,bookid);
                 ps.executeUpdate();//更改这本书的被借阅状态
+                ps=conn.prepareStatement(updateBookStateSqlStr);
                 String insertLendedSqlStr="INSERT INTO t_lend(fk_uid,fk_bid,lend_date) VALUES (?,?,?)";
                 ps=conn.prepareStatement(insertLendedSqlStr);
                 ps.setInt(1,user.getId());
-                ps.setInt(2,book.getId());
+                ps.setInt(2,bookid);
                 ps.setDate(3,new Date(new java.util.Date().getTime()));
                 ps.executeUpdate();//添加借书记录
                 conn.commit();//提交事务
@@ -229,10 +230,7 @@ public class UserDao  {
             }
 
 
-        }else{
-            //借书失败-该书已经被借出去了
-            return false;
-        }
+
         return false;
     }
 
@@ -240,26 +238,26 @@ public class UserDao  {
      * 用户还书
      * @param conn
      * @param user
-     * @param book
+     * @param bookid
      * @return
      */
-    public static boolean backBook(Connection conn,User user,Book book)
+    public static boolean backBook(Connection conn,User user,int bookid)
     {
-        //先判断书已经被借了
-        if(book.isLended())
-        {
+
+
             PreparedStatement ps=null;
             //使用事务提交
             try {
                 conn.setAutoCommit(false);
                 String updateBookStateSqlStr="UPDATE t_book SET lended=false WHERE id=?";
                 ps=conn.prepareStatement(updateBookStateSqlStr);
+                ps.setInt(1,bookid);
                 ps.executeUpdate();//更改这本书的被借阅状态
                 String insertLendedSqlStr="UPDATE t_lend SET back_date=? WHERE fk_uid=? AND fk_bid=? ";
                 ps=conn.prepareStatement(insertLendedSqlStr);
                 ps.setDate(1,new Date(new java.util.Date().getTime()));
                 ps.setInt(2,user.getId());
-                ps.setInt(3,book.getId());
+                ps.setInt(3,bookid);
                 ps.executeUpdate();//查找到该条借书记录，然后添加其还书时间
                 conn.commit();//提交事务
                 //还原connection的事务提交
@@ -278,10 +276,6 @@ public class UserDao  {
             }
 
 
-        }else{
-            //还书失败-该书未被借出去了
-            return false;
-        }
         return false;
     }
 
